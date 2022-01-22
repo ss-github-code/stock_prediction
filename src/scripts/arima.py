@@ -5,8 +5,7 @@ from pmdarima.arima import auto_arima
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 class AlgoARIMA:
-    def __init__(self, ts, p, d, q):
-        assert(d == 0)
+    def __init__(self, ts):
         model_autoARIMA = auto_arima(ts, 
                                      start_p=0, max_p=20,
                                      start_q=0, max_q=60,
