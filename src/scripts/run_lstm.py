@@ -10,7 +10,7 @@ from lstm import AlgoLSTM
 START_DATE = '2000-01-01'
 TARGET     = 'High'
 TIMEFRAME  = -1
-LOG_RETURN = False
+LOG_RETURN = True
 TEST_SIZE  = 0.2
 WINDOW_SIZE = 2
 NUM_EPOCHS = 2
