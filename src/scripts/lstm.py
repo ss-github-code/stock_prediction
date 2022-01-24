@@ -10,6 +10,8 @@ from tqdm import tqdm
 from data_handler_lstm import FEATURES, RESULT_COLS
 
 RANDOM_SEED = 42
+OPTIMIZER = 'adam'
+LOSS = 'mse'
 
 class AlgoLSTM:
     def __init__(self, data_handler_lstm, num_of_epochs):
@@ -35,7 +37,7 @@ class AlgoLSTM:
         model.add(Dense(4))
         model.add(LeakyReLU())
         model.add(Dense(1)) # 1 target feature only
-        model.compile(optimizer='adam', loss='mse')
+        model.compile(optimizer=OPTIMIZER, loss=LOSS)
 
         train_gen = data_handler_lstm.train_gen
         val_gen = data_handler_lstm.val_gen
@@ -95,9 +97,10 @@ class AlgoLSTM:
         df_val.index.name = 'x'
 
         df_test = df_result[[RESULT_COLS[6], RESULT_COLS[7], RESULT_COLS[8]]].set_index(RESULT_COLS[8])
-        df_test.loc[results[RESULT_COLS[8]][-1]]['test_actual'] = 0 # temporary
+        last_day = results[RESULT_COLS[8]][-1]
+        df_test.loc[last_day][RESULT_COLS[6]] = 0 # temporary
         df_test.dropna(inplace=True)
-        df_test.loc[results[RESULT_COLS[8]][-1]]['test_actual'] = np.nan # change it back
+        df_test.loc[last_day][RESULT_COLS[6]] = np.nan # change it back
         df_test.index = df_test.index.astype('int32', copy=False)
         df_test.index.name = 'x'
 

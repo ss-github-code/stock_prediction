@@ -22,8 +22,11 @@ def run_arima(ticker):
     algo_arima = AlgoARIMA(data_handler.y_train)
     forecasts = algo_arima.get_forecasts(len(data_handler.y_val) + len(data_handler.y_test))
 
-    forecast, val_results, test_results = data_handler.process_forecasts(forecasts)
-    print(test_results)
+    forecast, _, test_results = data_handler.process_forecasts(forecasts)
+    print('************************************')
+    print(pd.DataFrame(test_results, index=[0])) # must pass an index (for all scalar values) or change the columns to be a list
+    print()
+    print('Predicted value:')
     print(forecast[-1])
     return
 
