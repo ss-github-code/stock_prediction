@@ -77,16 +77,34 @@ class DataHandler_LSTM:
     def decompose(self):
         data = self.data
         ceemdan = CEEMDAN(parallel = True, processes=8)
-        data[FEATURES[-1]].fillna(0,inplace=True) # cannot have NaN in CEEMDAN
+        # data[FEATURES[-1]].fillna(0, inplace=True) # cannot have NaN in CEEMDAN
 
+        cut, val_size = self.get_train_val_size()
+
+        # First scale
+        scaled_features_series = {}
+        self.scalerTgt = None
+        for col in FEATURES:
+            series = data[col].values.reshape(-1,1)
+            if col == FEATURES[-1]:
+                series = series[:-1] # leave out NaN (cannot have NaN in CEEMDAN)
+
+            feature_time_series = np.frombuffer(series)
+            train_ser = feature_time_series[:cut]
+            scaler = MinMaxScaler()
+            scaler.fit(train_ser.reshape(-1,1))
+            scaled_features_series[col] = scaler.transform(feature_time_series.reshape(-1,1)).flatten()
+            if col == FEATURES[-1]:
+                self.scalerTgt = scaler # save the scaler for inverse_transform after prediction        
+
+        # Then decompose each input feature using the EMD library
         print('Decomposing using EMD library')
         decomposed_features_series = {}
         for col in FEATURES: # decompose the 6 time series (Open, High, Low, Close, Volume, Target)
             decomposed_features_series[col] = {}
             try:
-                series = data[col].values.reshape(-1,1)
                 # decompose
-                feature_time_series = np.frombuffer(series)
+                feature_time_series = np.frombuffer(scaled_features_series[col])
                 feature_time_series_imfs = ceemdan(feature_time_series, max_imf=MAX_IMFS)
                 # iterating every IMF 
                 for i, imf_series in enumerate(feature_time_series_imfs):
@@ -94,29 +112,16 @@ class DataHandler_LSTM:
                         decomposed_features_series[col][f'IMF{i+1}'] = imf_series
                     else:
                         decomposed_features_series[col][f'Rsd'] = imf_series
-                print(f'Finished Decomposing {col}: #IMFS: {len(feature_time_series_imfs)}')
+                print(f'Finished Decomposing {col}: #IMFS: {len(feature_time_series_imfs)}, {len(imf_series)}')
             except:
                 print(f'ERROR decomposing [{col}]')
                 decomposed_features_series[col] = 'ERROR'                
             finally:
                 continue
-        
-        cut, val_size = self.get_train_val_size()
-        self.scalerTgt = None
-        for col in decomposed_features_series.keys():
-            for imf in decomposed_features_series[col]:
-                if imf != 'Rsd':
-                    continue
-                train_ser = decomposed_features_series[col][imf][:cut].reshape(-1,1)
-                scaler = MinMaxScaler()
-                scaler.fit(train_ser)
-                decomposed_features_series[col][imf] = scaler.transform(decomposed_features_series[col][imf].reshape(-1,1)).flatten()
-                if col == FEATURES[-1]:
-                    self.scalerTgt = scaler # save the scaler for inverse_transform after prediction
 
         # Coupling together the IMFs of the same level for different features to create exogenous input
         series = {}
-        self.target_max_imf_level = None           
+        self.target_max_imf_level = None      
         for col in decomposed_features_series.keys(): # Open, High,..., Target
             # 6 features, each one has 7 IMFs
             imfs = pd.DataFrame.from_dict(decomposed_features_series[col])
@@ -125,8 +130,10 @@ class DataHandler_LSTM:
                 if imf not in series:
                     series[imf] = [] # empty list
                 _series = imfs[imf].values
+                if col != FEATURES[-1]: # other than Target, each series has one more entry
+                    _series = _series[:-1]                
                 _series = _series.reshape((len(_series),1)) # reshaping to get into column format
-                series[imf] += [_series] # list of (len(data), 1)
+                series[imf] += [_series] # list of (len(data)-1, 1)
                 # print(feature, imf, _series.shape, len(series[ticker][imf]))
             if col == FEATURES[-1]:
                 self.target_max_imf_level = imf
@@ -137,17 +144,17 @@ class DataHandler_LSTM:
         for imf_level in series:
             assert(len(series[imf_level]) == 6)
             full_data[imf_level] = np.hstack(tuple(series[imf_level]))
-            print(imf_level, full_data[imf_level].shape) # (len(data), 6)
+            print(imf_level, full_data[imf_level].shape) # (len(data)-1, 6)
 
         self.train_data = {} # needed while modeling for number of input features (6)
         val_data = {}
-        test_data = {}
+        self.test_data = {}
 
         for imf_level in full_data:
             # splitting data sets according to rates
             self.train_data[imf_level] = full_data[imf_level][:cut, :]
             val_data[imf_level] = full_data[imf_level][cut:cut+val_size, :]
-            test_data[imf_level] = full_data[imf_level][cut+val_size:, :]
+            self.test_data[imf_level] = full_data[imf_level][cut+val_size:, :] # Note that test_data has one more entry
         
         self.train_gen = {}
         self.val_gen = {}
@@ -164,8 +171,8 @@ class DataHandler_LSTM:
             self.val_gen[imf_level] = ManyToOneTimeSeriesGenerator(val_data[imf_level],
                                                                    val_data[imf_level],
                                                                    length = window_size, batch_size = 1) 
-            self.test_gen[imf_level] = ManyToOneTimeSeriesGenerator(test_data[imf_level],
-                                                                    test_data[imf_level],
+            self.test_gen[imf_level] = ManyToOneTimeSeriesGenerator(self.test_data[imf_level],
+                                                                    self.test_data[imf_level],
                                                                     length = window_size, batch_size = 1)
         return        
 

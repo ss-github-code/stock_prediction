@@ -98,13 +98,14 @@ class AlgoLSTM:
 
         df_test = df_result[[RESULT_COLS[6], RESULT_COLS[7], RESULT_COLS[8]]].set_index(RESULT_COLS[8])
         last_day = results[RESULT_COLS[8]][-1]
+        assert(np.isnan(df_test.loc[last_day][RESULT_COLS[6]]))
         df_test.loc[last_day][RESULT_COLS[6]] = 0 # temporary
         df_test.dropna(inplace=True)
         df_test.loc[last_day][RESULT_COLS[6]] = np.nan # change it back
         df_test.index = df_test.index.astype('int32', copy=False)
         df_test.index.name = 'x'
 
-        df_concatenated = pd.concat([df_train,df_val,df_test], axis=1)
+        df_concatenated = pd.concat([df_train,df_val,df_test], axis=1) # gather the predicted train, val, test dataframes
         df_concatenated
 
         return df_concatenated # columns: train_actual, train_pred, train_x_axis,

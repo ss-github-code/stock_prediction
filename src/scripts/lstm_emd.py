@@ -124,7 +124,7 @@ class AlgoLSTM_EMD:
 
         for imf_level in models:
             model = models[imf_level]
-    
+
             print(f'Predicting: [{imf_level}]')
 
             cur_train_gen = data_handler_lstm.train_gen[imf_level]
@@ -153,14 +153,26 @@ class AlgoLSTM_EMD:
                 day_counter += 1
 
             # predicting test
-            for i in tqdm(range(len(cur_test_gen))):
+            len_test_gen = len(cur_test_gen)
+            for i in tqdm(range(len_test_gen)):
                 x, y = cur_test_gen[i]
                 yhat = model.predict(x, verbose=0)
-
                 results[imf_level][RESULT_COLS[6]] += [y[0][0]]
                 results[imf_level][RESULT_COLS[7]] += [yhat[0][0]]
                 results[imf_level][RESULT_COLS[8]] += [day_counter]
                 day_counter += 1
+                
+                if i == len_test_gen - 1: # add one more prediction!
+                    x1 = np.zeros(x.shape)
+                    cur_win_size = x.shape[1]
+                    for j in range(cur_win_size-1):
+                        x1[0][j] = x[0][j+1].reshape(1, -1)
+                    x1[0][cur_win_size-1] = data_handler_lstm.test_data[imf_level][-1].reshape(1,-1)
+                    yhat = model.predict(x1, verbose=0)
+                    # print("x1", x1, "YHAT", yhat)
+                    results[imf_level][RESULT_COLS[6]] += [np.nan]
+                    results[imf_level][RESULT_COLS[7]] += [yhat[0][0]]
+                    results[imf_level][RESULT_COLS[8]] += [day_counter]
 
         concatenated_results = {}
         for imf_level in results: # IMF1,..., Rsd
@@ -175,7 +187,12 @@ class AlgoLSTM_EMD:
             df_val.index = df_val.index.astype('int32', copy=False)
             df_val.index.name = 'x'
 
-            df_test = df_result[[RESULT_COLS[6], RESULT_COLS[7], RESULT_COLS[8]]].set_index(RESULT_COLS[8]).dropna(axis=0)
+            df_test = df_result[[RESULT_COLS[6], RESULT_COLS[7], RESULT_COLS[8]]].set_index(RESULT_COLS[8])
+            last_day = results[imf_level][RESULT_COLS[8]][-1]
+            assert(np.isnan(df_test.loc[last_day][RESULT_COLS[6]]))
+            df_test.loc[last_day][RESULT_COLS[6]] = 0 # temporary
+            df_test.dropna(inplace=True)
+            df_test.loc[last_day][RESULT_COLS[6]] = np.nan # change it back
             df_test.index = df_test.index.astype('int32', copy=False)
             df_test.index.name = 'x'
 
@@ -185,94 +202,95 @@ class AlgoLSTM_EMD:
 
             concatenated_results[imf_level] = df_concatenated
 
-        add_train_actual = None
-        add_val_actual = None
-        add_test_actual = None
-        
-        add_train_pred = None
-        add_val_pred = None
-        add_test_pred = None
+        add_train_actual_arr = None
+        add_val_actual_arr = None
+        add_test_actual_arr = None
+
+        add_train_pred_arr = None
+        add_val_pred_arr = None
+        add_test_pred_arr = None
+
 
         for imf_level in concatenated_results:
             ser_imf = concatenated_results[imf_level]
             skip = SKIP_REMAIN_FOR_IMFS[imf_level]
 
             # adding train actual
-            ser_tr = ser_imf[RESULT_COLS[0]]
-            n_train = (~np.isnan(ser_tr)).sum()
+            arr_tr = ser_imf[RESULT_COLS[0]].values
+            n_train = (~np.isnan(arr_tr)).sum()
 
-            new_ser_tr = ser_tr.iloc[skip:n_train]
-            if add_train_actual is None:
-                add_train_actual = new_ser_tr
-                print("r tr", imf_level, len(add_train_actual))
+            new_arr_tr = arr_tr[skip:n_train]
+            if add_train_actual_arr is None:
+                add_train_actual_arr = new_arr_tr
+                print("r tr", imf_level, len(add_train_actual_arr))
             else:
-                add_train_actual = pd.Series(np.add(add_train_actual.values, new_ser_tr.values))
+                add_train_actual_arr = np.add(add_train_actual_arr, new_arr_tr)
 
             # train pred
-            ser_tr = ser_imf[RESULT_COLS[1]]
-            assert(n_train == (~np.isnan(ser_tr)).sum())
+            arr_tr = ser_imf[RESULT_COLS[1]].values
+            assert(n_train == (~np.isnan(arr_tr)).sum())
 
-            new_ser_tr = ser_tr.iloc[skip:n_train]
-            if add_train_pred is None:
-                add_train_pred = new_ser_tr
-                print("tr", imf_level, len(add_train_pred))
+            new_arr_tr = arr_tr[skip:n_train]
+            if add_train_pred_arr is None:
+                add_train_pred_arr = new_arr_tr
+                print("tr", imf_level, len(add_train_pred_arr))
             else:
-                add_train_pred = pd.Series(np.add(add_train_pred.values, new_ser_tr.values))
+                add_train_pred_arr = np.add(add_train_pred_arr, new_arr_tr)
 
             # adding val actual
-            ser_val = ser_imf[RESULT_COLS[3]]
-            n_val = (~np.isnan(ser_val)).sum()
+            arr_val = ser_imf[RESULT_COLS[3]].values
+            n_val = (~np.isnan(arr_val)).sum()
 
-            new_ser_val = ser_val.iloc[skip+n_train:n_val+n_train]
-            if add_val_actual is None:
-                add_val_actual = new_ser_val
-                print("r val", len(add_val_actual))
+            new_arr_val = arr_val[skip+n_train:n_val+n_train]
+            if add_val_actual_arr is None:
+                add_val_actual_arr = new_arr_val
+                print("r val", len(add_val_actual_arr))
             else:
-                add_val_actual = pd.Series(np.add(add_val_actual.values, new_ser_val.values))
+                add_val_actual_arr = np.add(add_val_actual_arr, new_arr_val)
 
             # val pred
-            ser_val = ser_imf[RESULT_COLS[4]]
-            assert(n_val == (~np.isnan(ser_val)).sum())
+            arr_val = ser_imf[RESULT_COLS[4]].values
+            assert(n_val == (~np.isnan(arr_val)).sum())
 
-            new_ser_val = ser_val.iloc[skip+n_train:n_val+n_train]
-            if add_val_pred is None:
-                add_val_pred = new_ser_val
-                print("val", len(add_val_pred))
+            new_arr_val = arr_val[skip+n_train:n_val+n_train]
+            if add_val_pred_arr is None:
+                add_val_pred_arr = new_arr_val
+                print("val", len(add_val_pred_arr), n_val)
             else:
-                add_val_pred = pd.Series(np.add(add_val_pred.values, new_ser_val.values))
+                add_val_pred = np.add(add_val_pred_arr, new_arr_val)
 
             # adding test actual
-            ser_tst = ser_imf[RESULT_COLS[6]]
-            n_tst = (~np.isnan(ser_tst)).sum()
+            arr_tst = ser_imf[RESULT_COLS[6]].values
+            n_tst = (~np.isnan(arr_tst)).sum()
 
-            new_ser_tst = ser_tst.iloc[skip+n_train+n_val:n_tst+n_train+n_val]
-            if add_test_actual is None:
-                add_test_actual = new_ser_tst
-                print("r tst", len(add_test_actual))
+            new_arr_tst = arr_tst[skip+n_train+n_val:n_tst+n_train+n_val+1] # including the last nan
+            if add_test_actual_arr is None:
+                add_test_actual_arr = new_arr_tst
+                print("r tst", len(add_test_actual_arr), n_tst+1)
             else:
-                add_test_actual = pd.Series(np.add(add_test_actual.values, new_ser_tst.values))
+                add_test_actual_arr = np.add(add_test_actual_arr, new_arr_tst)
 
             # test pred
-            ser_tst = ser_imf[RESULT_COLS[7]]
-            n_tst = (~np.isnan(ser_tst)).sum()
-
-            new_ser_tst = ser_tst.iloc[skip+n_train+n_val:n_tst+n_train+n_val]
-            if add_test_pred is None:
-                add_test_pred = new_ser_tst
-                print("tst", len(add_test_pred))
+            arr_tst = ser_imf[RESULT_COLS[7]].values
+            assert(n_tst+1 == (~np.isnan(arr_tst)).sum())
+            
+            new_arr_tst = arr_tst[skip+n_train+n_val:n_tst+n_train+n_val+1]
+            if add_test_pred_arr is None:
+                add_test_pred_arr = new_arr_tst
+                print("tst", len(add_test_pred_arr))
             else:
-                add_test_pred = pd.Series(np.add(add_test_pred.values, new_ser_tst.values))
-                print("tst", imf_level, len(add_test_pred), len(new_ser_tst))
-        
+                add_test_pred_arr = np.add(add_test_pred_arr, new_arr_tst)
+                print("tst", imf_level, len(add_test_pred_arr), len(new_arr_tst))
 
+        # inverse transform
         scaler = data_handler_lstm.scalerTgt
         final_prediction_results = {
-            RESULT_COLS[0]: scaler.inverse_transform(add_train_actual.values.reshape(-1,1)).reshape(-1),
-            RESULT_COLS[1]: scaler.inverse_transform(add_train_pred.values.reshape(-1,1)).reshape(-1),
-            RESULT_COLS[3]: scaler.inverse_transform(add_val_actual.values.reshape(-1,1)).reshape(-1),
-            RESULT_COLS[4]: scaler.inverse_transform(add_val_pred.values.reshape(-1,1)).reshape(-1),
-            RESULT_COLS[6]: scaler.inverse_transform(add_test_actual.values.reshape(-1,1)).reshape(-1),
-            RESULT_COLS[7]: scaler.inverse_transform(add_test_pred.values.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[0]: scaler.inverse_transform(add_train_actual_arr.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[1]: scaler.inverse_transform(add_train_pred_arr.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[3]: scaler.inverse_transform(add_val_actual_arr.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[4]: scaler.inverse_transform(add_val_pred_arr.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[6]: scaler.inverse_transform(add_test_actual_arr.reshape(-1,1)).reshape(-1),
+            RESULT_COLS[7]: scaler.inverse_transform(add_test_pred_arr.reshape(-1,1)).reshape(-1),
         }
 
         train_actual = final_prediction_results[RESULT_COLS[0]].reshape(-1,1)
@@ -280,8 +298,12 @@ class AlgoLSTM_EMD:
 
         train_df = pd.DataFrame(np.hstack([train_actual, train_pred]), columns=[RESULT_COLS[0], RESULT_COLS[1]])
 
+        assert(WIN_SIZE_FOR_IMFS['Rsd'] == 6)
+        assert(data_handler_lstm.target_max_imf_level == 'Rsd')
+
+        max_win_size = WIN_SIZE_FOR_IMFS['Rsd']
         cut, val_size = data_handler_lstm.get_train_val_size()
-        train_dates = data['Date'][6:cut]
+        train_dates = data['Date'][max_win_size:cut] # loose 6 rows from the top due to WIN_SIZE_FOR_IMFS['Rsd']
         train_df['Date'] = train_dates.values
 
         val_actual = final_prediction_results[RESULT_COLS[3]].reshape(-1,1)
@@ -289,7 +311,7 @@ class AlgoLSTM_EMD:
 
         val_df = pd.DataFrame(np.hstack([val_actual, val_pred]), columns=[RESULT_COLS[3], RESULT_COLS[4]])
 
-        val_dates = data['Date'][6+cut:cut+val_size]
+        val_dates = data['Date'][max_win_size+cut:cut+val_size]
         val_df['Date'] = val_dates.values
 
         test_actual = final_prediction_results[RESULT_COLS[6]].reshape(-1,1)
@@ -297,14 +319,15 @@ class AlgoLSTM_EMD:
 
         test_df = pd.DataFrame(np.hstack([test_actual, test_pred]), columns=[RESULT_COLS[6], RESULT_COLS[7]])
 
-        test_dates = data['Date'][6+cut+val_size:]
+        test_dates = data['Date'][max_win_size+cut+val_size:]
         test_df['Date'] = test_dates.values
 
+        assert(data_handler_lstm.timeframe == -1)
         data['Back_Shifted'] = data[data_handler_lstm.target].shift(data_handler_lstm.timeframe)
         df_pred = pd.concat([train_df, val_df, test_df], ignore_index=True)
         df_pred.set_index('Date', inplace=True)
 
-        df_actual = pd.DataFrame()
+        df_actual = pd.DataFrame() # gather the slices for the actual stock data; given the range of dates
         for ti in [train_dates, val_dates, test_dates]:
             tmp_slice = data[data['Date'].isin(ti)]
             df_actual = pd.concat([df_actual,tmp_slice], ignore_index=True)
