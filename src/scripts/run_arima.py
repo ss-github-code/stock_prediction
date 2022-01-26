@@ -23,8 +23,9 @@ def run_arima(ticker):
     forecasts = algo_arima.get_forecasts(len(data_handler.y_val) + len(data_handler.y_test))
 
     forecast, _, test_results = data_handler.process_forecasts(forecasts)
+    print()
     print('************************************')
-    print(pd.DataFrame(test_results, index=[0])) # must pass an index (for all scalar values) or change the columns to be a list
+    print(pd.DataFrame(test_results, index=['Test results'])) # must pass an index (for all scalar values) or change the columns to be a list
     print()
     print('Predicted value:')
     print(forecast[-1])

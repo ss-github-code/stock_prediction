@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -14,7 +16,7 @@ class DataHandler:
         self.data.set_index(['Date'], inplace=True)
         self.data['target'] = self.normalize_target()
 
-        features = [col for col in self.data.columns if col != target]
+        features = [col for col in self.data.columns if col != 'target']
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
             self.data[features], self.data['target'], 
             test_size=test_size, shuffle=False
@@ -56,7 +58,7 @@ class DataHandler:
 
         return results
 
-    def process_forecasts(self, forecasts):
+    def process_forecasts(self, forecasts, plot=True):
         val_forecasts = forecasts[:len(self.y_val)]
         test_forecasts = forecasts[len(self.y_val):]
 
@@ -69,9 +71,9 @@ class DataHandler:
         val_forecasts_df = val_forecasts_df.join(self.X_val[['Close']]) # columns: predicted_mean, Close
         val_forecasts_df.rename(columns={'predicted_mean':'target'}, inplace=True)
 
-        forecast = self.unnormalize_target(val_forecasts_df)
-        actual = self.unnormalize_target(y_val_df)
-        val_results = self.calculate_results(forecast, actual)
+        val_forecast_ser = self.unnormalize_target(val_forecasts_df)
+        val_actual_ser = self.unnormalize_target(y_val_df)
+        val_results = self.calculate_results(val_forecast_ser, val_actual_ser)
 
         y_test_df = self.y_test.to_frame()
         y_test_df = y_test_df.join(self.X_test[['Close']]) # columns: target, Close
@@ -81,8 +83,20 @@ class DataHandler:
         test_forecasts_df = test_forecasts_df.join(self.X_test[['Close']]) # columns: predicted_mean, Close
         test_forecasts_df.rename(columns={'predicted_mean':'target'}, inplace=True)
 
-        forecast = self.unnormalize_target(test_forecasts_df)
-        actual = self.unnormalize_target(y_test_df.iloc[:-1])
-        test_results = self.calculate_results(forecast[:-1], actual)
+        test_forecast_ser = self.unnormalize_target(test_forecasts_df)
+        test_actual_ser = self.unnormalize_target(y_test_df.iloc[:-1])
+        test_results = self.calculate_results(test_forecast_ser[:-1], test_actual_ser)
 
-        return forecast, val_results, test_results
+        if plot:
+            fig, ax = plt.subplots(1, 1, figsize=(18,6))
+            ax.xaxis.set_major_locator(mdates.YearLocator(1))
+            train = self.X_train[['High']][1:]
+            plt.plot(train.index, train, color='blue', label='Train', alpha=0.5)
+            plt.plot(val_forecast_ser.index, val_forecast_ser, color='black', alpha=0.8, label='Validation predict')
+            plt.plot(val_actual_ser.index, val_actual_ser, color='yellow', alpha=0.5, label='Validation actual')
+            plt.plot(test_forecast_ser.index, test_forecast_ser, color='red', alpha=0.8, label = 'Test predict')
+            plt.plot(test_forecast_ser.index[:-1], test_actual_ser, color='yellow', alpha=0.5, label='Test actual')
+            plt.legend()
+            plt.show()
+
+        return test_forecast_ser, val_results, test_results
