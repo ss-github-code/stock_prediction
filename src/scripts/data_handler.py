@@ -5,6 +5,8 @@ import matplotlib.dates as mdates
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from statsmodels.graphics.tsaplots import plot_pacf
+from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import adfuller
 
 class DataHandler:
@@ -61,6 +63,21 @@ class DataHandler:
                 output['critical value (%s)'%key] = values
 
         assert(output['p-value'] < 0.05)
+    
+    def pacf_acf_plots(self):
+        # Check appropriateness of AR via partial autocorrelation graph
+        fig, ax = plt.subplots(1, 1, figsize=(8,6))
+        plot_pacf(self.data['target'][:-1], ax, lags=40)
+        ax.set_xlabel(r"Lag")
+        ax.set_ylabel(r"Correlation")
+        del fig, ax #, plot_pacf
+
+        # Check appropriateness of MA via autocorrelation graph
+        fig, ax = plt.subplots(1, 1, figsize=(8,6))
+        plot_acf(self.data['target'][:-1], ax, lags=40)
+        ax.set_xlabel(r"Lag")
+        ax.set_ylabel(r"Correlation")
+        del fig, ax
 
     def calculate_results(self, forecast, actual):
         results = {}
