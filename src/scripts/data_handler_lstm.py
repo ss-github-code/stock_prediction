@@ -1,6 +1,8 @@
 from wsgiref import validate
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -243,7 +245,7 @@ class DataHandler_LSTM:
                 return np.exp(data['target']) * data['Close']
             return data['target'] * data['Close']
     '''
-    def calculate_results(self, df_final_results):
+    def calculate_results(self, df_final_results, plot=True):
         
         accuracies_detailed = {}
 
@@ -277,6 +279,17 @@ class DataHandler_LSTM:
                 'validation':np.mean(np.abs((y_val - yhat_val) / y_val)) * 100,
                 'test':np.mean(np.abs((y_test - yhat_test) / y_test)) * 100,
             }
+        if plot:
+            fig, ax = plt.subplots(1, 1, figsize=(18,6))
+            ax.xaxis.set_major_locator(mdates.YearLocator(1))
+            plt.plot(y_train.index, y_train, color='blue', label='Train', alpha=0.5)
+            plt.plot(y_val.index, yhat_val, color='black', alpha=0.8, label='Validation predict')
+            plt.plot(y_val.index, y_val, color='yellow', alpha=0.5, label='Validation actual')
+            plt.plot(y_test.index, yhat_test, color='red', alpha=0.8, label = 'Test predict')
+            plt.plot(y_test.index, y_test, color='yellow', alpha=0.5, label='Test actual')
+            plt.legend()
+            plt.show()
+
         return accuracies_detailed
 
     def process_forecasts(self, df_concatenated):

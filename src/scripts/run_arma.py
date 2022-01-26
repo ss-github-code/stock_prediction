@@ -13,7 +13,7 @@ TIMEFRAME  = -1
 LOG_RETURN = True
 TEST_SIZE  = 0.2
 
-def run_arma(ticker):
+def run_arma(ticker, print_stationarity_test_result = False):
     si_from_yahoo = YahooStockData(ticker)
     si_data = si_from_yahoo.get_data(START_DATE)
     si_data.reset_index(inplace=True)

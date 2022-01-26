@@ -5,6 +5,7 @@ import matplotlib.dates as mdates
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from statsmodels.tsa.stattools import adfuller
 
 class DataHandler:
     def __init__(self, data, target, timeframe, log_return, test_size):
@@ -15,15 +16,16 @@ class DataHandler:
 
         self.data.set_index(['Date'], inplace=True)
         self.data['target'] = self.normalize_target()
-
-        features = [col for col in self.data.columns if col != 'target']
+        self.adf_test()
+        
+        self.features = [col for col in self.data.columns if col != 'target']
         self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(
-            self.data[features], self.data['target'], 
+            self.data[self.features], self.data['target'], 
             test_size=test_size, shuffle=False
         )
 
         self.X_val, self.X_test, self.y_val, self.y_test = train_test_split(
-            self.X_val[features], self.y_val, 
+            self.X_val[self.features], self.y_val, 
             test_size=0.5, shuffle=False
         )
 
@@ -47,6 +49,18 @@ class DataHandler:
             if self.log_return:
                 return np.exp(data['target']) * data['Close']
             return data['target'] * data['Close']
+
+    def adf_test(self, print_results = False):
+        # Stationarity test
+        ad_fuller_result = adfuller(self.data['target'][:-1], autolag='AIC') # [:-1] to ignore Nan
+        output = pd.Series(ad_fuller_result[0:4], index=['Test Statistics','p-value','No. of lags used','Number of observations used'])
+        if print_results:
+            print('Output of Augmented Dickey Fuller Test')
+            print(output)
+            for key,values in ad_fuller_result[4].items():
+                output['critical value (%s)'%key] = values
+
+        assert(output['p-value'] < 0.05)
 
     def calculate_results(self, forecast, actual):
         results = {}
