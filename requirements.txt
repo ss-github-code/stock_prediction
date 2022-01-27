@@ -70,6 +70,7 @@ threadpoolctl==3.0.0
 tqdm==4.62.3
 typing_extensions==4.0.1
 urllib3==1.26.8
+vaderSentiment==3.3.2
 Werkzeug==2.0.2
 wrapt==1.13.3
 xgboost==1.5.2
