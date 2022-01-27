@@ -8,7 +8,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, LSTM, LeakyReLU
 from scipy.interpolate import CubicSpline
 
-from data_handler_lstm import FEATURES, RESULT_COLS, WIN_SIZE_FOR_IMFS, SKIP_REMAIN_FOR_IMFS
+from data_handler_lstm import RESULT_COLS, WIN_SIZE_FOR_IMFS, SKIP_REMAIN_FOR_IMFS
 
 # CONSTANTS
 MODEL_EPOCHS = {
@@ -113,8 +113,8 @@ class AlgoLSTM_EMD:
         results = {}
 
         # initializing results dictionary
-        for feature in FEATURES:
-            if feature != FEATURES[-1]:
+        for feature in data_handler_lstm.features:
+            if feature != data_handler_lstm.features[-1]:
                 continue
 
             for imf_level in models:
@@ -257,7 +257,7 @@ class AlgoLSTM_EMD:
                 add_val_pred_arr = new_arr_val
                 print("val", len(add_val_pred_arr), n_val)
             else:
-                add_val_pred = np.add(add_val_pred_arr, new_arr_val)
+                add_val_pred_arr = np.add(add_val_pred_arr, new_arr_val)
 
             # adding test actual
             arr_tst = ser_imf[RESULT_COLS[6]].values

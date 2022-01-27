@@ -1,4 +1,3 @@
-from wsgiref import validate
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +9,6 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from PyEMD import CEEMDAN # Empirical Mode Decomposition (EMD). Most popular expansion is Ensemble Empirical Mode Decomposition (EEMD)
 from keras.preprocessing.sequence import TimeseriesGenerator
 
-FEATURES = ['Open','High','Low','Close','Volume', 'Target']
 RESULT_COLS = ['train_actual', 'train_pred', 'train_x_axis', \
                'val_actual', 'val_pred', 'val_x_axis', \
                'test_actual', 'test_pred', 'test_x_axis']
@@ -49,12 +47,17 @@ class ManyToOneTimeSeriesGenerator(TimeseriesGenerator):
     return x, y[:,last_element_index].reshape(1,-1)
 
 class DataHandler_LSTM:
-    def __init__(self, data, target, timeframe, log_return, test_size, window_size, use_EMD=False):
+    def __init__(self, data, target, timeframe, log_return, test_size, window_size, use_EMD=False, use_sentiment=False):
         assert(target == 'High')
         assert(timeframe == -1)
         if use_EMD:
-            assert(log_return == False) 
+            assert(log_return == False)
+            assert(use_sentiment == False) 
 
+        if use_sentiment:
+            self.features = ['Open','High','Low','Close','Volume', 'compound', 'Target']
+        else:
+            self.features = ['Open','High','Low','Close','Volume', 'Target']
         self.data = data
         self.target = target
         self.timeframe = timeframe
@@ -63,7 +66,7 @@ class DataHandler_LSTM:
         self.window_size = window_size
 
         # self.data.set_index(['Date'], inplace=True)
-        self.data[FEATURES[-1]] = self.normalize_target() # last column is the target
+        self.data[self.features[-1]] = self.normalize_target() # last column is the target
         if use_EMD:
             self.decompose()
         else:
@@ -78,6 +81,7 @@ class DataHandler_LSTM:
 
     def decompose(self):
         data = self.data
+        features = self.features
         ceemdan = CEEMDAN(parallel = True, processes=8)
         # data[FEATURES[-1]].fillna(0, inplace=True) # cannot have NaN in CEEMDAN
 
@@ -86,9 +90,9 @@ class DataHandler_LSTM:
         # First scale
         scaled_features_series = {}
         self.scalerTgt = None
-        for col in FEATURES:
+        for col in features:
             series = data[col].values.reshape(-1,1)
-            if col == FEATURES[-1]:
+            if col == features[-1]:
                 series = series[:-1] # leave out NaN (cannot have NaN in CEEMDAN)
 
             feature_time_series = np.frombuffer(series)
@@ -96,13 +100,13 @@ class DataHandler_LSTM:
             scaler = MinMaxScaler()
             scaler.fit(train_ser.reshape(-1,1))
             scaled_features_series[col] = scaler.transform(feature_time_series.reshape(-1,1)).flatten()
-            if col == FEATURES[-1]:
+            if col == features[-1]:
                 self.scalerTgt = scaler # save the scaler for inverse_transform after prediction        
 
         # Then decompose each input feature using the EMD library
         print('Decomposing using EMD library')
         decomposed_features_series = {}
-        for col in FEATURES: # decompose the 6 time series (Open, High, Low, Close, Volume, Target)
+        for col in features: # decompose the 6 time series (Open, High, Low, Close, Volume, Target)
             decomposed_features_series[col] = {}
             try:
                 # decompose
@@ -132,12 +136,12 @@ class DataHandler_LSTM:
                 if imf not in series:
                     series[imf] = [] # empty list
                 _series = imfs[imf].values
-                if col != FEATURES[-1]: # other than Target, each series has one more entry
+                if col != features[-1]: # other than Target, each series has one more entry
                     _series = _series[:-1]                
                 _series = _series.reshape((len(_series),1)) # reshaping to get into column format
                 series[imf] += [_series] # list of (len(data)-1, 1)
                 # print(feature, imf, _series.shape, len(series[ticker][imf]))
-            if col == FEATURES[-1]:
+            if col == features[-1]:
                 self.target_max_imf_level = imf
                 assert(self.target_max_imf_level == 'Rsd')
 
@@ -179,35 +183,35 @@ class DataHandler_LSTM:
         return        
 
     def build_generators(self):
-        self.scaler = {}
+        features = self.features
+        data = self.data
+        self.scalers_dict = {}
         train_dict = {}
         val_dict = {}
         test_dict = {}
 
         cut, val_size = self.get_train_val_size()
-        for feature in FEATURES:
-            train_ser = self.data[feature][:cut].values.reshape(-1,1)
+        for feature in features:
+            series = data[feature].values.reshape(-1,1)
+            feature_time_series = np.frombuffer(series)
 
             scaler = MinMaxScaler()
-            scaler.fit(train_ser)
-            scaler.transform(self.data[feature].values.reshape(-1,1))
+            self.scalers_dict[feature] = scaler
 
-            self.scaler[feature] = scaler
-            train_dict[feature] = train_ser.squeeze()
-        
-            val_dict[feature] = self.data[feature][cut:cut+val_size].values
-            test_dict[feature] = self.data[feature][cut+val_size:].values
+            train_ser = feature_time_series[:cut].reshape(-1,1)
+            scaler.fit(train_ser)
+            scaled_feature_ser = scaler.transform(feature_time_series.reshape(-1,1)).flatten()
+
+            train_dict[feature] = scaled_feature_ser[:cut]
+            val_dict[feature] = scaled_feature_ser[cut:cut+val_size]
+            test_dict[feature] = scaled_feature_ser[cut+val_size:]
 
         print("# Training samples:", cut, " # val samples:", val_size, 
               " # test samples:", self.data.shape[0] - cut - val_size)
 
-        #df_index = self.data.index
-        train_df = pd.DataFrame(train_dict, columns=FEATURES)
-        val_df = pd.DataFrame(val_dict, columns=FEATURES)
-        test_df = pd.DataFrame(test_dict, columns=FEATURES)
-        # train_df = pd.DataFrame(train_dict, index=df_index[:cut], columns=FEATURES)
-        # val_df = pd.DataFrame(val_dict, index=df_index[cut:cut+val_size], columns=FEATURES)
-        # test_df = pd.DataFrame(test_dict, index=df_index[cut+val_size:], columns=FEATURES)
+        train_df = pd.DataFrame(train_dict, columns=features)
+        val_df = pd.DataFrame(val_dict, columns=features)
+        test_df = pd.DataFrame(test_dict, columns=features)
         #print(train_df.shape, val_df.shape, test_df.shape)
 
         self.train_gen = ManyToOneTimeSeriesGenerator(train_df.values,
@@ -293,7 +297,7 @@ class DataHandler_LSTM:
         return accuracies_detailed
 
     def process_forecasts(self, df_concatenated):
-        scaler = self.scaler['Target']
+        scaler = self.scalers_dict['Target']
         for col in df_concatenated.columns:
             df_concatenated[col] = scaler.inverse_transform(df_concatenated[col].values.reshape(-1,1))
 

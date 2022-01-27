@@ -7,7 +7,7 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, LeakyReLU
 from tqdm import tqdm
 
-from data_handler_lstm import FEATURES, RESULT_COLS
+from data_handler_lstm import RESULT_COLS
 
 RANDOM_SEED = 42
 OPTIMIZER = 'adam'
@@ -27,7 +27,7 @@ class AlgoLSTM:
 
         self.data_handler_lstm = data_handler_lstm
         window_size = data_handler_lstm.window_size
-        n_features = len(FEATURES)
+        n_features = len(data_handler_lstm.features)
 
         self.model = model = Sequential()
         model.add(LSTM(128, activation='tanh', return_sequences=True, input_shape=(window_size, n_features)))
@@ -106,7 +106,6 @@ class AlgoLSTM:
         df_test.index.name = 'x'
 
         df_concatenated = pd.concat([df_train,df_val,df_test], axis=1) # gather the predicted train, val, test dataframes
-        df_concatenated
 
         return df_concatenated # columns: train_actual, train_pred, train_x_axis,
                                #          val_actual, val_pred, val_x_axis,
