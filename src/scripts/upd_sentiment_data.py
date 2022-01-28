@@ -40,9 +40,10 @@ def find_news_articles(begindate, nytimes_section, api_key):
     return ret_list
 
 def update_sentiment_data(api_key):
-    api_key = '&api-key={api_key}'
+    api_key = f'&api-key={api_key}'
     sent_data = pd.read_csv(PATH_TO_SENT_DATA)
     sent_data['Date'] = pd.to_datetime(sent_data['Date'])
+    sent_data.sort_values(['Date'], inplace=True, ignore_index=True)
     begin_date = sent_data.iloc[-1]['Date'] + datetime.timedelta(days=1)
     today = datetime.datetime.today()
 
