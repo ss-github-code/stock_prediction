@@ -4,20 +4,28 @@ warnings.filterwarnings("ignore")
 import ta
 import numpy as np
 
+'''
+ta is a Technical Analysis library to financial time series datasets (open, close, high, low, volume). 
+We use it to do feature engineering for the stock data from Yahoo. In order to create additional features 
+on top of our core pricing and fundamental data, we use ta library to engineer features.
+The library uses High, Low, Close and Volume columns from stock data to engineer features.
+The technical analysis features include several kinds of momentum, volatility, and volume indicators.
+'''
 def add_ta_features(df): # Add technical analysis features
-    windows = [6,18,24,30,50,100,200]
+    windows = [6,18,24,30,50,100,200] # rolling windows of 6, 18, 24, 30, 50, 100, and 200 days for each technical indicator
 
     for w in windows:
         if len(df) >= w:
-            # RSI
+            # RSI Relative Strength Index (RSI) momentum indicator
             df['RSI_' + str(w)] = ta.momentum.RSIIndicator(df['Close'], window=w, fillna=True).rsi()
-            # MACD
+            # MACD (Moving Average Convergence Divergence) is a lagging trend-following momentum indicator.
             for w2 in windows:
                 if w > w2:
                     # Will utilize macd_diff because that is more normalized
                     df['MACD_f'+str(w2)+'_s'+str(w)] = ta.trend.MACD(df['Close'], window_slow=w2, window_fast=w, fillna=True).macd_diff()
 
-            # Bollinger Bands
+            # Bollinger Bands are a volatility indicator that leverages standard deviations of volatility to identify two bands - 
+            # one above and one below the SMA for price movement
             ## Stdev default=2, but can change it if desired
             # Currently returning high/low band indicators, but can add actual values if desired.
             bbands = ta.volatility.BollingerBands(df['Close'], window=w, fillna=True)
@@ -27,11 +35,11 @@ def add_ta_features(df): # Add technical analysis features
             df['BBands_' + str(w) + 'hband'] = bbands.bollinger_hband()
             df['BBands_' + str(w) + 'lband'] = bbands.bollinger_lband()
 
-            # Average True Range (ATR)
+            # Average True Range (ATR) is a volatility indicator that decomposes the price range movement for a lookback time period. 
             df['ATR_' + str(w)] = ta.volatility.AverageTrueRange(
                 high=df['High'],low=df['Low'],close=df['Close'], window=w, fillna=True).average_true_range()
                 
-            # Donchian Channel (DONCHIAN)
+            # Donchian Channel (DONCHIAN) a volatility indicator that comprises three lines, where one is a moving average and the other two are bands.
             d_channel = ta.volatility.DonchianChannel(
                 high=df['High'],low=df['Low'],close=df['Close'], window=w, fillna=True)
             df['DONCHAIN_' + str(w) + 'hband'] = d_channel.donchian_channel_hband()
@@ -45,15 +53,16 @@ def add_ta_features(df): # Add technical analysis features
             df['KELTNER_' + str(w) + '_h_ind'] = k_channel.keltner_channel_hband_indicator()
             df['KELTNER_' + str(w) + '_l_ind'] = k_channel.keltner_channel_lband_indicator()
                 
-            # Stochastic Oscillator (SR/STOCH)
+            # Stochastic Oscillator (SR/STOCH) A stochastic oscillator is a momentum indicator that compares closing price to a factor of high 
+            # and low price ranges over a lookback window.
             df['STOCH_' + str(w)] = ta.momentum.StochasticOscillator(
                 high=df['High'],low=df['Low'],close=df['Close'], window=w, fillna=True).stoch()
 
-            # Chaikin Money Flow Indicator (CMF)
+            # Chaikin Money Flow Indicator (CMF) is a volume indicator that is an oscillator. 
             df['CMF_' + str(w)] = ta.volume.ChaikinMoneyFlowIndicator(
                 high=df['High'],low=df['Low'],close=df['Close'],volume=df['Volume'], window=w, fillna=True).chaikin_money_flow()
 
-            # Ichimoku Indicator (ICHI)
+            # Ichimoku Indicator (ICHI) trend and momentum indicator that is used to determine support and resistance levels.
             for w2 in windows:
                 for w3 in windows:
                     if (w > w2) & (w2 > w3):
@@ -64,7 +73,7 @@ def add_ta_features(df): # Add technical analysis features
                         df['ICHI_diff_' + str(w3)+'_'+str(w2)+'_'+str(w)] = df['ICHI_conv_' + str(w3)+'_'+str(w2)+'_'+str(w)] - df['ICHI_base_' + str(w3)+'_'+str(w2)+'_'+str(w)]
 
 
-                # SMA
+                # SMA A simple moving average is a trend indicator, and is just the arithmetic mean of the price over a particular lookback period.
                 df['SMA_' + str(w)] = ta.trend.SMAIndicator(df['Close'], window=w, fillna=True).sma_indicator()
 
                 # SMA Crossover
@@ -74,7 +83,8 @@ def add_ta_features(df): # Add technical analysis features
                         sma_f = ta.trend.SMAIndicator(df['Close'], window=w2, fillna=True).sma_indicator()
                         df['SMA_cross_f' + str(w2) + '_s' + str(w)] = sma_f - sma_s
 
-                # EMA
+                # EMA An exponential moving average is a trend indicator, and is a weighted average of the price over a particular lookback period 
+                # that takes recency into account, and is thus more responsive to new information in pricing changes.
                 df['EMA_' + str(w)] = ta.trend.EMAIndicator(df['Close'], window=w, fillna=True).ema_indicator()
 
                 # EMA Crossover
@@ -90,11 +100,13 @@ def add_ta_features(df): # Add technical analysis features
             df['OBV'] = ta.volume.OnBalanceVolumeIndicator(
                 close=df['Close'],volume=df['Volume'], fillna=True).on_balance_volume()
 
-            # Volume-Price Trend (VPT)
+            # Volume-Price Trend (VPT) Volume-Price Trend is a volume indicator that helps identify price direction and the magnitude of that movement. 
+            # It is specifically used to determine supply and demand of a security. 
             df['VPT'] = ta.volume.VolumePriceTrendIndicator(
                 close=df['Close'],volume=df['Volume'], fillna=True).volume_price_trend()
 
-            # Accumulation/Distribution Index Indicator (ADI)
+            # Accumulation/Distribution Index Indicator (ADI) Similarly to Volume-Price Trend, ADI is a volume indicator that uses a money flow multiplier 
+            # and volume to determine supply and demand of a security. 
             df['ADI'] = ta.volume.AccDistIndexIndicator(
                 high=df['High'],low=df['Low'],close=df['Close'],volume=df['Volume'], fillna=True).acc_dist_index()
 

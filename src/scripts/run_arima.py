@@ -22,7 +22,7 @@ def run_arima(ticker):
     algo_arima = AlgoARIMA(data_handler.y_train)
     forecasts = algo_arima.get_forecasts(len(data_handler.y_val) + len(data_handler.y_test))
 
-    forecast, _, test_results = data_handler.process_forecasts(forecasts)
+    forecast, _, test_results = data_handler.process_forecasts(forecasts, plot_title=f'ARIMA {ticker}')
     print()
     print('************************************')
     print(pd.DataFrame(test_results, index=['Test results'])) # must pass an index (for all scalar values) or change the columns to be a list

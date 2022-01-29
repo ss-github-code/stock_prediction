@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -16,7 +17,7 @@ MAX_IMFS = 6 # components are often called Intrinsic Mode Functions (IMF) to hig
              # that they contain an intrinsic property which is a specific oscillation (mode)
 
 WIN_SIZE_FOR_IMFS = {
-    'IMF1': 2,
+    'IMF1': 2, # use smaller window for high frequency component
     'IMF2': 2,
     'IMF3': 3,
     'IMF4': 3,
@@ -40,11 +41,15 @@ SKIP_REMAIN_FOR_IMFS = {
     'DEFAULT': 2
 }
 
+'''
+This class takes in a sequence of data-points gathered at equal intervals, along with time series parameters such as stride, 
+length of history, etc., to produce batches for training/validation.
+'''
 class ManyToOneTimeSeriesGenerator(TimeseriesGenerator):
   def __getitem__(self, idx):
     x, y = super().__getitem__(idx)
     last_element_index = y.shape[1]-1 # y.shape (1,1)
-    return x, y[:,last_element_index].reshape(1,-1)
+    return x, y[:,last_element_index].reshape(1,-1) # subclassing it so that we only return the last column in batch_size rows
 
 class DataHandler_LSTM:
     def __init__(self, data, target, timeframe, log_return, test_size, window_size, use_EMD=False, use_sentiment=False):
@@ -79,6 +84,15 @@ class DataHandler_LSTM:
         val_size = round(test_size*self.data.shape[0]/2)
         return cut, val_size
 
+    '''
+    Neural net models try to focus on learning the behavior of a series from its data, without prior explicit assumptions, 
+    such as linearity or stationarity. An ideal approach is to divide the tough task of forecasting the original time series 
+    into several subtasks, and each of them forecasts a relatively simpler subsequence. 
+    And then the results of all subtasks are accumulated as the final result.
+    We will use Empirical Mode Decomposition to decompose each of the 6 (Open, Close, High, Low, Volume, Target) into components.
+    PyEMD is a Python implementation of Empirical Mode Decomposition (EMD) and its variations. One of the most popular expansion is 
+    Ensemble Empirical Mode Decomposition (EEMD), which utilises an ensemble of noise-assisted executions.
+    '''
     def decompose(self):
         data = self.data
         features = self.features
@@ -93,7 +107,7 @@ class DataHandler_LSTM:
         for col in features:
             series = data[col].values.reshape(-1,1)
             if col == features[-1]:
-                series = series[:-1] # leave out NaN (cannot have NaN in CEEMDAN)
+                series = series[:-1] # leave out NaN in the target column (cannot have NaN in CEEMDAN)
 
             feature_time_series = np.frombuffer(series)
             train_ser = feature_time_series[:cut]
@@ -190,6 +204,9 @@ class DataHandler_LSTM:
         val_dict = {}
         test_dict = {}
 
+        # First scale by applying min max scaler
+        # This estimator scales and translates each feature individually such that it is in the given range on the 
+        # training set, e.g. between zero and one.
         cut, val_size = self.get_train_val_size()
         for feature in features:
             series = data[feature].values.reshape(-1,1)
@@ -249,7 +266,7 @@ class DataHandler_LSTM:
                 return np.exp(data['target']) * data['Close']
             return data['target'] * data['Close']
     '''
-    def calculate_results(self, df_final_results, plot=True):
+    def calculate_results(self, df_final_results, plot=True, plot_title='Title'):
         
         accuracies_detailed = {}
 
@@ -284,6 +301,7 @@ class DataHandler_LSTM:
                 'test':np.mean(np.abs((y_test - yhat_test) / y_test)) * 100,
             }
         if plot:
+            today = datetime.datetime.today().strftime('%Y/%m/%d')
             fig, ax = plt.subplots(1, 1, figsize=(18,6))
             ax.xaxis.set_major_locator(mdates.YearLocator(1))
             plt.plot(y_train.index, y_train, color='blue', label='Train', alpha=0.5)
@@ -291,12 +309,14 @@ class DataHandler_LSTM:
             plt.plot(y_val.index, y_val, color='yellow', alpha=0.5, label='Validation actual')
             plt.plot(y_test.index, yhat_test, color='red', alpha=0.8, label = 'Test predict')
             plt.plot(y_test.index, y_test, color='yellow', alpha=0.5, label='Test actual')
+            plt.title(f'{plot_title} {today}')
             plt.legend()
             plt.show()
 
         return accuracies_detailed
 
-    def process_forecasts(self, df_concatenated):
+    def process_forecasts(self, df_concatenated, plot_title='Title'):
+        # Apply scaler inverse transform to the predicted target columns
         scaler = self.scalers_dict['Target']
         for col in df_concatenated.columns:
             df_concatenated[col] = scaler.inverse_transform(df_concatenated[col].values.reshape(-1,1))
@@ -336,4 +356,4 @@ class DataHandler_LSTM:
         for col in [RESULT_COLS[0], RESULT_COLS[3], RESULT_COLS[6]]: 
             df_recompiled[col] = df_recompiled.apply(lambda x: np.nan if np.isnan(x[col]) else x['Back_Shifted_Actual'], axis=1)
 
-        return df_recompiled, self.calculate_results(df_recompiled)
+        return df_recompiled, self.calculate_results(df_recompiled, plot_title=plot_title)

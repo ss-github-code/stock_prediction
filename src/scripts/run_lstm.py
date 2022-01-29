@@ -25,15 +25,15 @@ def run_lstm(ticker):
     # si_data = pd.read_csv(ticker + '.csv')
 
     data_handler = DataHandler_LSTM(si_data, TARGET, TIMEFRAME, LOG_RETURN, TEST_SIZE, WINDOW_SIZE)
-    algo_lstm = AlgoLSTM(data_handler, NUM_EPOCHS)
+    algo_lstm = AlgoLSTM(data_handler, NUM_EPOCHS) # initialize the Tensorflow LSTM model
     df_concatenated = algo_lstm.get_forecasts()
 
-    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated)
+    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated, plot_title=f'LSTM {ticker}')
     print('************************************')
     print(pd.DataFrame(accuracy))
     print()
     print('Predicted value:')
-    print(df_forecast.iloc[-1][TARGET])
+    print(df_forecast.iloc[-1]['test_pred'])
     return
 
 if __name__ == '__main__':

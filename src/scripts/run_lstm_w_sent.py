@@ -40,12 +40,12 @@ def run_lstm(ticker):
     algo_lstm = AlgoLSTM(data_handler, NUM_EPOCHS)
     df_concatenated = algo_lstm.get_forecasts()
 
-    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated)
+    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated, plot_title=f'LSTM (with sentiment data) {ticker}')
     print('************************************')
     print(pd.DataFrame(accuracy))
     print()
     print('Predicted value:')
-    print(df_forecast.iloc[-1][TARGET])
+    print(df_forecast.iloc[-1]['test_pred'])
     return
 
 if __name__ == '__main__':

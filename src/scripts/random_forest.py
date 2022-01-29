@@ -4,6 +4,8 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import ParameterGrid
 
+# A random forest is a meta estimator that fits a number of classifying decision trees on various sub-samples of the dataset and 
+# uses averaging to improve the predictive accuracy and control over-fitting.
 class AlgoRandomForest:
     def __init__(self, data_handler):
         self.data_handler = data_handler
@@ -11,6 +13,7 @@ class AlgoRandomForest:
         X_train, y_train = data_handler.X_train, data_handler.y_train
         X_val, y_val = data_handler.X_val, data_handler.y_val
 
+        # grid search for random forest hyper parameters
         grid = {'n_estimators' : [200, 300, 500], 'max_depth' : [3],
                 'max_features' : [4,8], 'random_state' : [0]
                }
@@ -25,8 +28,8 @@ class AlgoRandomForest:
         best_index = np.argmax(val_scores) # If .score() changed to a metric, check this for change to argmin
         best_params = ParameterGrid(grid)[best_index]
 
-        rf_model.set_params(**best_params)
-        rf_model.fit(X_train, y_train)
+        rf_model.set_params(**best_params) # set the best params using unpack operator
+        rf_model.fit(X_train, y_train)     # fit the training data
         self.rf_model = rf_model
 
     def get_forecasts(self):

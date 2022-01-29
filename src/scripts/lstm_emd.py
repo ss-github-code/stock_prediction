@@ -202,6 +202,7 @@ class AlgoLSTM_EMD:
 
             concatenated_results[imf_level] = df_concatenated
 
+        # add all components to get the predicted target for each component
         add_train_actual_arr = None
         add_val_actual_arr = None
         add_test_actual_arr = None

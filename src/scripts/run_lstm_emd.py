@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-import sys, getopt
+import sys
 
 from yahoo_stock_data import YahooStockData
 from data_handler_lstm import DataHandler_LSTM
@@ -27,7 +27,7 @@ def run_lstm(ticker):
     algo_lstm = AlgoLSTM_EMD(data_handler)
     df_recompiled = algo_lstm.get_forecasts()
 
-    accuracy = data_handler.calculate_results(df_recompiled)
+    accuracy = data_handler.calculate_results(df_recompiled, plot_title=f'LSTM (EMD) {ticker}')
     
     print('************************************')
     print(pd.DataFrame(accuracy))

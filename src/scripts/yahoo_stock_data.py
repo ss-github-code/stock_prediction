@@ -2,6 +2,12 @@ import yfinance as yf
 from pandas_datareader import data as pdr
 from datetime import date
 
+'''
+Yahoo Finance provides real time low latency API for stock market quotes, crypto currencies, and currency exchange.
+We need to provide a start date, the end date is optional (it will download all the data available till today).
+It takes a stock market ticker symbol (e.g. MSFT for Microsoft) and returns stock quote for the given time period.
+The data consists of Open, Close, High, Low, Volume for each business day since the start date.
+'''
 class YahooStockData:
     def __init__(self, ticker):
         self.ticker = ticker # MSFT

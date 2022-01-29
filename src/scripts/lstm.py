@@ -13,6 +13,12 @@ RANDOM_SEED = 42
 OPTIMIZER = 'adam'
 LOSS = 'mse'
 
+'''
+Recurrent neural networks (RNN) are a class of neural networks that is powerful for modeling sequence data such as time series or natural language.
+Schematically, a RNN layer uses a for loop to iterate over the timesteps of a sequence, while maintaining an internal state that encodes information 
+about the timesteps it has seen so far.
+Long Short-Term Memory networks, or LSTMs for short, can be applied to time series forecasting.
+'''
 class AlgoLSTM:
     def __init__(self, data_handler_lstm, num_of_epochs):
         # Initialize GPU
