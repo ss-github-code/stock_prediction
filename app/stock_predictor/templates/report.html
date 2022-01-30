@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}home{% endblock title %}
+
+{% block header %}
+
+<!-- jquery cdn -->
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+    crossorigin="anonymous"></script>
+
+<link rel="stylesheet" href="{% static 'css/homepage_styles.css' %}">
+
+<script src="{% static 'js/homepage.js' %}"></script>
+
+{% endblock header %}
+
+{% block content %}
+    <div class="container">
+        <h1>A Sentiment Analysis Approach To Stock Prediction</h1>
+
+        <h3>Part A - Supervised Learning</h3>
+        <h3>Part B - Unsupervised Learning</h3>
+        <h3>Part C - Data Pipeline</h3>
+        <h3>Part D - Software Engineering</h3>
+        <h3>Part E - Discussion and Results</h3>
+        <h3>Part F - Conclusion</h3>
+    </div>
+{% endblock content %}

@@ -315,7 +315,7 @@ class DataHandler_LSTM:
 
         return accuracies_detailed
 
-    def process_forecasts(self, df_concatenated, plot_title='Title'):
+    def process_forecasts(self, df_concatenated, plot=True, plot_title='Title'):
         # Apply scaler inverse transform to the predicted target columns
         scaler = self.scalers_dict['Target']
         for col in df_concatenated.columns:
@@ -356,4 +356,4 @@ class DataHandler_LSTM:
         for col in [RESULT_COLS[0], RESULT_COLS[3], RESULT_COLS[6]]: 
             df_recompiled[col] = df_recompiled.apply(lambda x: np.nan if np.isnan(x[col]) else x['Back_Shifted_Actual'], axis=1)
 
-        return df_recompiled, self.calculate_results(df_recompiled, plot_title=plot_title)
+        return df_recompiled, self.calculate_results(df_recompiled, plot=plot, plot_title=plot_title)

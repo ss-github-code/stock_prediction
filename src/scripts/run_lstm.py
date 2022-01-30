@@ -15,7 +15,7 @@ TEST_SIZE  = 0.2
 WINDOW_SIZE = 2
 NUM_EPOCHS = 4
 
-def run_lstm(ticker):
+def run_lstm(ticker, show_plot=True):
     si_from_yahoo = YahooStockData(ticker)
     si_data = si_from_yahoo.get_data(START_DATE)
     si_data.reset_index(inplace=True)
@@ -28,13 +28,17 @@ def run_lstm(ticker):
     algo_lstm = AlgoLSTM(data_handler, NUM_EPOCHS) # initialize the Tensorflow LSTM model
     df_concatenated = algo_lstm.get_forecasts()
 
-    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated, plot_title=f'LSTM {ticker}')
+    df_forecast, accuracy = data_handler.process_forecasts(df_concatenated, plot=show_plot, plot_title=f'LSTM {ticker}')
     print('************************************')
     print(pd.DataFrame(accuracy))
     print()
     print('Predicted value:')
     print(df_forecast.iloc[-1]['test_pred'])
-    return
+
+    res_dict = {}
+    for k, v in accuracy.items():
+        res_dict[k] = v['test']
+    return df_forecast.iloc[-1]['test_pred'], res_dict
 
 if __name__ == '__main__':
     run_lstm(sys.argv[1])

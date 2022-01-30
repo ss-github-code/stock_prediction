@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}home{% endblock title %}
+
+{% block header %}
+
+<!-- jquery cdn -->
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+    crossorigin="anonymous"></script>
+
+<link rel="stylesheet" href="{% static 'css/homepage_styles.css' %}">
+
+<script src="{% static 'js/homepage.js' %}"></script>
+
+{% endblock header %}
+
+{% block content %}
+
+<div class="container  mt-5">
+    <div class="form_container">
+        <form method='post' action="{% url 'get_result' %}" id='ticker_form'>
+            {% csrf_token %}
+            <label for="tickerSelect" class="form-label">Select Ticker</label>
+            <input class="form-control" list="datalistOptions" id="tickerSelect" name="tickerSelect"
+                placeholder="Type to search ticker">
+            <datalist id="datalistOptions">
+                <option value="MSFT">
+                <option value="GOOG">
+                <option value="TSLA">
+                <option value="APPL">
+            </datalist>
+
+            <button type='submit' class='mt-2 btn btn-primary'>Predict</button>
+        </form>
+    </div>
+
+    <div class="loading_gif_container">
+        <img src="{% static 'images/loading.gif' %}" alt="">
+    </div>
+
+    <div class="table_container prediction_container mt-5">
+        <h1>Predictions by different models on  <span id='today_str'></span></h1>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th scope="col">ARMA</th>
+                    <th scope="col">ARIMA</th>
+                    <th scope="col">LSTM</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id='arma_cell'></td>
+                    <td id='arima_cell'></td>
+                    <td id='lstm_cell'></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table_container loss_container mt-5">
+        <h1>Loss</h1>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th scope='col'>Model</th>
+                    <th scope="col">MSE</th>
+                    <th scope="col">MAE</th>
+                    <th scope="col">MAPE</th>
+                    <th scope="col">RMSE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class='arma_row'>
+                    <th id='model_cell'>ARMA</th>
+                    <td id='arma_mse_cell'></td>
+                    <td id='arma_mae_cell'></td>
+                    <td id='arma_mape_cell'></td>
+                    <td id='arma_rmse_cell'></td>
+                </tr>
+                <tr class='arima_row'>
+                    <th id='model_cell'>ARIMA</th>
+                    <td id='arima_mse_cell'></td>
+                    <td id='arima_mae_cell'></td>
+                    <td id='arima_mape_cell'></td>
+                    <td id='arima_rmse_cell'></td>
+                </tr>
+                <tr class='lstm_row'>
+                    <th id='model_cell'>LSTM</th>
+                    <td id='lstm_mse_cell'></td>
+                    <td id='lstm_mae_cell'></td>
+                    <td id='lstm_mape_cell'></td>
+                    <td id='lstm_rmse_cell'></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock content %}
