@@ -115,7 +115,7 @@ class DataHandler:
         results['mse'] = mean_squared_error(actual, forecast)
         results['mae'] = mean_absolute_error(actual, forecast)
         results['rmse'] = mean_squared_error(actual, forecast, squared=False)
-        results['mape'] = np.mean(np.abs(forecast - actual)/np.abs(forecast))
+        results['mape'] = np.mean(np.abs(forecast - actual)/np.abs(forecast))*100
 
         return results
 
