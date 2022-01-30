@@ -26,6 +26,7 @@ function ticker_submit(event) {
             $('#arma_cell').html(data['arma_prediction'][0])
             $('#arima_cell').html(data['arima_prediction'][0])
             $('#lstm_cell').html(data['lstm_prediction'][0])
+            $('#lstm_w_sent_cell').html(data['lstm_w_sent_prediction'][0])
 
             $('#arma_mse_cell').html(data['arma_prediction'][1]['mse'])
             $('#arma_mae_cell').html(data['arma_prediction'][1]['mae'])
@@ -41,6 +42,11 @@ function ticker_submit(event) {
             $('#lstm_mae_cell').html(data['lstm_prediction'][1]['mae'])
             $('#lstm_mape_cell').html(data['lstm_prediction'][1]['mape'])
             $('#lstm_rmse_cell').html(data['lstm_prediction'][1]['rmse'])
+
+            $('#lstm_w_sent_mse_cell').html(data['lstm_w_sent_prediction'][1]['mse'])
+            $('#lstm_w_sent_mae_cell').html(data['lstm_w_sent_prediction'][1]['mae'])
+            $('#lstm_w_sent_mape_cell').html(data['lstm_w_sent_prediction'][1]['mape'])
+            $('#lstm_w_sent_rmse_cell').html(data['lstm_w_sent_prediction'][1]['rmse'])            
         }
     });
     return false;

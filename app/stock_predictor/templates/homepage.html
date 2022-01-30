@@ -18,6 +18,23 @@
 {% block content %}
 
 <div class="container  mt-5">
+    <div>
+        <h1 class='mb-2 text-center'>Sentiment Analysis Approach to Stock Prediction</h1>
+        <h3 class='mt-5'>Milestone II Project</h3>
+        <p class='mt-2'>
+            The stock market and its trends are highly volatile. As the stock market produces a large
+amount of data every day, it is challenging for an individual to consider the current and past
+information for predicting the future trends of the stock market. In this project, we explore
+the use of different statistical and machine learning models that use the stock market data,
+stock’s fundamentals data and sentiment analysis of news data as input features. We
+investigate the ability of different models to predict the next day’s high price of a stock.
+We use four accuracy metrics as a measure to evaluate a model’s performance to predict the
+next day’s high price of a stock.
+        </p>
+        <p class='mt-2 text-danger'>
+            Warning! This website is for educational purposes only and should not be relied upon for any other use.
+        </p>
+    </div>
     <div class="form_container">
         <form method='post' action="{% url 'get_result' %}" id='ticker_form'>
             {% csrf_token %}
@@ -25,10 +42,11 @@
             <input class="form-control" list="datalistOptions" id="tickerSelect" name="tickerSelect"
                 placeholder="Type to search ticker">
             <datalist id="datalistOptions">
-                <option value="MSFT">
-                <option value="GOOG">
-                <option value="TSLA">
-                <option value="APPL">
+                <option value="AAPL">Apple</option>
+                <option value="MSFT">Microsoft</option>option>
+                <option value="GOOG">Google</option>
+                <option value="AMZN">Amazon</option>
+                <option value="TSLA">Tesla</option>
             </datalist>
 
             <button type='submit' class='mt-2 btn btn-primary'>Predict</button>
@@ -47,6 +65,7 @@
                     <th scope="col">ARMA</th>
                     <th scope="col">ARIMA</th>
                     <th scope="col">LSTM</th>
+                    <th scope="col">LSTM with sentiment</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,6 +73,7 @@
                     <td id='arma_cell'></td>
                     <td id='arima_cell'></td>
                     <td id='lstm_cell'></td>
+                    <td id='lstm_w_sent_cell'></td>
                 </tr>
             </tbody>
         </table>
@@ -61,6 +81,7 @@
 
     <div class="table_container loss_container mt-5">
         <h1>Loss</h1>
+        <h3>Calculated using the test dataset (train:validation:test = 80:10:10)</h3>
         <table class="table mt-3">
             <thead>
                 <tr>
@@ -93,6 +114,14 @@
                     <td id='lstm_mape_cell'></td>
                     <td id='lstm_rmse_cell'></td>
                 </tr>
+                <tr class='lstm_w_sent_row'>
+                    <th id='model_cell'>LSTM with sentiment</th>
+                    <td id='lstm_w_sent_mse_cell'></td>
+                    <td id='lstm_w_sent_mae_cell'></td>
+                    <td id='lstm_w_sent_mape_cell'></td>
+                    <td id='lstm_w_sent_rmse_cell'></td>
+                </tr>
+
             </tbody>
         </table>
     </div>

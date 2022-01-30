@@ -17,7 +17,7 @@ NUM_EPOCHS = 4
 PATH_TO_SENT_DATA = '../../data/sentiment_data.csv'
 POSITIVE_SENTIMENT_THRESH = 0.105
 
-def run_lstm(ticker, show_plot=True):
+def run_lstm(ticker, show_plot=True, path_to_sent_data=None):
     si_from_yahoo = YahooStockData(ticker)
     si_data = si_from_yahoo.get_data(START_DATE)
     si_data.reset_index(inplace=True)
@@ -25,13 +25,14 @@ def run_lstm(ticker, show_plot=True):
     
     # si_data.to_csv(ticker + '.csv', index=False)
     # si_data = pd.read_csv(ticker + '.csv')
-
-    sent_data = pd.read_csv(PATH_TO_SENT_DATA)
+    if path_to_sent_data is None: # support sending path to the sentiment data from the UI
+        path_to_sent_data = PATH_TO_SENT_DATA
+    sent_data = pd.read_csv(path_to_sent_data)
     sent_data['Date'] = pd.to_datetime(sent_data['Date'])
     sent_data = sent_data[['Date', 'compound']]
     sent_data['compound'] = sent_data['compound'].apply(lambda x : 1 if x >= POSITIVE_SENTIMENT_THRESH else 0)
     sent_data['compound'] = sent_data['compound'].astype('float64') # required for MinMaxScaler
-    merged_data = si_data.merge(sent_data, on=['Date'])
+    merged_data = si_data.merge(sent_data, on=['Date']) # TODO: handle Fri, Sat, & Sun sentiment for Mon's pred
 
     assert(merged_data.shape[0] == si_data.shape[0])
     assert(merged_data.shape[1] == si_data.shape[1]+1)
@@ -46,6 +47,7 @@ def run_lstm(ticker, show_plot=True):
     print()
     print('Predicted value:')
     print(df_forecast.iloc[-1]['test_pred'])
+    
     res_dict = {}
     for k, v in accuracy.items():
         res_dict[k] = v['test']
