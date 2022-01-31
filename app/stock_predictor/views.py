@@ -3,57 +3,64 @@ from django.http import JsonResponse
 import sys
 sys.path.append('../src/scripts')
 
-import os
-from run_arma import run_arma
-from run_arima import run_arima
-from run_lstm import run_lstm
-from run_lstm_w_sent import run_lstm as run_lstm_w_sent
+import tempfile
+
 import datetime
 import pickle
+import boto3
 
-DATA_PATH = './data/'
-PATH_TO_SENT_DATA = '../data/sentiment_data.csv'
+S3 = 's3'
+S3_REGION = 'us-west-2'
+S3_BUCKET = 'miidata'
+
 def homepage(request):
     return render(request, 'homepage.html')
-
 
 def get_result(request):
     if request.method == 'POST':
 
         ticker = request.POST['tickerSelect']
+        s3client = boto3.client(S3, region_name=S3_REGION)
+        objs = s3client.list_objects(S3_BUCKET)
 
-        today = datetime.datetime.today()
-        files = os.listdir(DATA_PATH)
-        ticker_file_name = ticker + str(today.date()) + '.pkl'
-        found = False
-        for file in files:
-            if file == ticker_file_name:
-                with open(DATA_PATH + file, 'rb') as f:
-                    arma_prediction, arma_results = pickle.load(f)
-                    arima_prediction, arima_results = pickle.load(f)
-                    lstm_prediction, lstm_results = pickle.load(f)
-                    lstm_w_sent_prediction, lstm_w_sent_results = pickle.load(f)
-                    found = True
-                    break
-            
-        if not found:
-            arma_prediction, arma_results = run_arma(ticker, show_plot=False)
-            arima_prediction, arima_results = run_arima(ticker, show_plot=False)
-            lstm_prediction, lstm_results = run_lstm(ticker, show_plot=False)
-            lstm_w_sent_prediction, lstm_w_sent_results = run_lstm_w_sent(
-                ticker, show_plot=False, path_to_sent_data= PATH_TO_SENT_DATA)
-            results = [arma_results, arima_results, lstm_results, lstm_w_sent_results]
-            for result in results:
-                for k,v in result.items():
-                    result[k] = round(v, 2)
+        latest = None
+        for obj in objs['Contents']:
+            objName = obj['Key']
 
-            with open(DATA_PATH + ticker_file_name, 'wb') as f:
-                pickle.dump((arma_prediction, arma_results), f)
-                pickle.dump((arima_prediction, arima_results), f)
-                pickle.dump((lstm_prediction, lstm_results), f)
-                pickle.dump((lstm_w_sent_prediction, lstm_w_sent_results), f)
+            sp = objName.split('-')
+            if sp[0] == ticker:
+                yr = int(sp[1])
+                m = int(sp[2])
+                d = int(sp[3].split('.')[0])
+                yr, m, d
+                ymd = datetime.datetime(year=yr, month=m, day=d)                
+                if latest is None:
+                    latest_obj = obj['Key']
+                    latest = ymd
+                elif ymd > latest:
+                    latest_obj = obj['Key']
+                    latest = ymd
+        
+        s3 = boto3.resource(S3, region_name=S3_REGION)
+        bucket = s3.Bucket(S3_BUCKET)
+        object = bucket.Object(latest_obj)
 
-        context = {'today_str':str(today.date()),
+        tmp = tempfile.NamedTemporaryFile()
+        with open(tmp.name, 'wb') as f:
+            object.download_fileobj(f)
+
+        with open(tmp.name, 'rb') as f:
+            arma_prediction, arma_results = pickle.load(f)
+            arima_prediction, arima_results = pickle.load(f)
+            lstm_prediction, lstm_results = pickle.load(f)
+            lstm_w_sent_prediction, lstm_w_sent_results = pickle.load(f)
+        
+        results = [arma_results, arima_results, lstm_results, lstm_w_sent_results]
+        for result in results:
+            for k,v in result.items():
+                result[k] = round(v, 2)
+
+        context = {'today_str':str(latest.date()),
                    'arma_prediction': [round(arma_prediction, 2), arma_results],
                    'arima_prediction': [round(arima_prediction, 2), arima_results],
                    'lstm_prediction': [round(lstm_prediction, 2), lstm_results],
