@@ -21,7 +21,7 @@ def get_result(request):
 
         ticker = request.POST['tickerSelect']
         s3client = boto3.client(S3, region_name=S3_REGION)
-        objs = s3client.list_objects(S3_BUCKET)
+        objs = s3client.list_objects(Bucket=S3_BUCKET)
 
         latest = None
         for obj in objs['Contents']:
