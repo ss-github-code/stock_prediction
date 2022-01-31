@@ -4,7 +4,7 @@ The stock market and its trends are highly volatile. As the stock market produce
 statistical and machine learning models that use the stock market data, stock’s fundamentals data and sentiment analysis of news data as input features. We investigate the ability of six different models to predict the next day’s high price of a stock. We use four accuracy metrics as a measure
 to evaluate a model’s performance to predict the next day’s high price of a stock.
 
-# Data source
+# Data sources
 1. Stock data using Yahoo Finance (YF) API
 YF provides a real-time low latency API for stock market quotes, cryptocurrencies, and currency exchange. We used the API to download the data using a stock’s ticker symbol (e.g., Microsoft’s ticker is MSFT). We collected data starting from January 2000 to the present. For each stock symbol, we receive the daily Open, High, Low, Close prices, and Volume of trading for the stock. The data is returned as a Pandas data frame and has
 about 5500 rows per stock ticker.
