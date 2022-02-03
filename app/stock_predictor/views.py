@@ -8,10 +8,13 @@ import tempfile
 import datetime
 import pickle
 import boto3
+import os
 
 S3 = 's3'
 S3_REGION = 'us-west-2'
 S3_BUCKET = 'miidata'
+AWS_SECRET_KEY = os.environ['AWS_SECRET_KEY']
+AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
 
 def homepage(request):
     return render(request, 'homepage.html')
@@ -20,7 +23,7 @@ def get_result(request):
     if request.method == 'POST':
 
         ticker = request.POST['tickerSelect']
-        s3client = boto3.client(S3, region_name=S3_REGION)
+        s3client = boto3.client(S3, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, region_name=S3_REGION)
         objs = s3client.list_objects(Bucket=S3_BUCKET)
 
         latest = None
@@ -40,8 +43,8 @@ def get_result(request):
                 elif ymd > latest:
                     latest_obj = obj['Key']
                     latest = ymd
-        
-        s3 = boto3.resource(S3, region_name=S3_REGION)
+
+        s3 = boto3.resource(S3, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, region_name=S3_REGION)
         bucket = s3.Bucket(S3_BUCKET)
         object = bucket.Object(latest_obj)
 
