@@ -3,12 +3,14 @@ services:
 
   app:
     build: .
-    image: &app app
+    container_name: stock_predictor
+    image: &app stock_pred
     restart: "no"
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8005"]
+    command: python manage.py runserver 0.0.0.0:8000
     ports:
-      - "8005:8005"
+      - "8000:8000"
     environment:
       - AWS_SECRET_KEY=${AWS_SECRET_KEY}
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - HOST_EXT_IP_ADDRESS=${HOST_EXT_IP_ADDRESS}

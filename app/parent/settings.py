@@ -29,8 +29,8 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
+host_ip = os.environ['HOST_EXT_IP_ADDRESS']
+ALLOWED_HOSTS = [host_ip]
 
 # Application definition
 
