@@ -2,7 +2,7 @@
 
 The stock market and its trends are highly volatile. As the stock market produces a large amountof data every day, it is challenging for an individual to consider the current and past information for predicting the future trends of the stock market. In this project, we explore the use of different
 statistical and machine learning models that use the stock market data, stock’s fundamentals data and sentiment analysis of news data as input features. We investigate the ability of six different models to predict the next day’s high price of a stock. We use four accuracy metrics as a measure
-to evaluate a model’s performance to predict the next day’s high price of a stock.
+to evaluate a model’s performance to predict the next day’s high price of a stock. Dashboard for displaying the daily results can be found <a href="http://54.200.203.92/" target="_blank">here</a>.
 
 # Data sources
 1. Stock data using Yahoo Finance (YF) API
