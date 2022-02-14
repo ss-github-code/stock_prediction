@@ -1,16 +1,29 @@
 version: '3.8'
 services:
 
-  app:
-    build: .
-    container_name: stock_predictor
-    image: &app stock_pred
-    restart: "no"
-    command: python manage.py runserver 0.0.0.0:8000
-    ports:
-      - "8000:8000"
+  web:
+    build: ./app
+    container_name: stock_predictor_app
+    image: &web stock_pred_app
+    command: gunicorn parent.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    expose:
+      - 8000
     environment:
       - AWS_SECRET_KEY=${AWS_SECRET_KEY}
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - HOST_EXT_IP_ADDRESS=${HOST_EXT_IP_ADDRESS}
+  nginx:
+    build: ./nginx
+    container_name: stock_predictor_nginx
+    image: &nginx stock_pred_nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    ports:
+      - 80:80
+    depends_on:
+      - web
+volumes:
+  static_volume:    
